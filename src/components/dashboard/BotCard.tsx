@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Bot } from "@/lib/types";
 import { getStrategy } from "@/lib/registry";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -6,8 +7,9 @@ export default function BotCard({ bot }: { bot: Bot }) {
   const strategy = getStrategy(bot.strategyId);
 
   return (
-    <div
-      className="rounded-xl border p-4 transition-colors hover:border-[var(--border-accent)]"
+    <Link
+      href={`/bots/${bot.id}`}
+      className="block rounded-xl border p-4 transition-colors hover:border-[var(--border-accent)] cursor-pointer"
       style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
     >
       <div className="flex items-start justify-between mb-2">
@@ -55,6 +57,13 @@ export default function BotCard({ bot }: { bot: Bot }) {
           </span>
         </div>
       </div>
-    </div>
+
+      <div
+        className="mt-3 pt-2 border-t text-center text-[10px] font-medium uppercase tracking-wider"
+        style={{ borderColor: "var(--border)", color: "var(--accent-blue)" }}
+      >
+        View trades &amp; analytics &rarr;
+      </div>
+    </Link>
   );
 }
