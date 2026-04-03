@@ -1,65 +1,89 @@
-import Image from "next/image";
+import { strategies, bots } from "@/lib/registry";
+import StrategyCard from "@/components/dashboard/StrategyCard";
+import BotCard from "@/components/dashboard/BotCard";
 
-export default function Home() {
+export default function DashboardPage() {
+  const activeStrategies = strategies.filter((s) => s.status === "active");
+  const totalTrades = strategies.reduce((sum, s) => sum + (s.metrics?.totalTrades ?? 0), 0);
+  const totalPnl = strategies.reduce((sum, s) => sum + (s.metrics?.pnl ?? 0), 0);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <>
+      <header className="mb-8">
+        <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+          Dashboard
+        </h1>
+        <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+          Overview of your Polymarket strategies and bots
+        </p>
+      </header>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <StatCard label="Strategies" value={String(strategies.length)} />
+        <StatCard label="Active" value={String(activeStrategies.length)} accent="green" />
+        <StatCard label="Total Trades" value={totalTrades.toLocaleString()} />
+        <StatCard
+          label="Total PnL"
+          value={`$${totalPnl.toFixed(2)}`}
+          accent={totalPnl >= 0 ? "green" : "red"}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      </div>
+
+      {/* Active strategies */}
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--text-muted)" }}>
+          Active Strategies
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeStrategies.map((s) => (
+            <StrategyCard key={s.id} strategy={s} />
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Bots */}
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--text-muted)" }}>
+          Bots
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {bots.map((b) => (
+            <BotCard key={b.id} bot={b} />
+          ))}
         </div>
-      </main>
+      </section>
+    </>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent?: "green" | "red";
+}) {
+  const colorVar =
+    accent === "green"
+      ? "var(--accent-green)"
+      : accent === "red"
+        ? "var(--accent-red)"
+        : "var(--text-primary)";
+
+  return (
+    <div
+      className="rounded-xl border px-4 py-3"
+      style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+    >
+      <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+        {label}
+      </div>
+      <div className="text-xl font-bold font-mono" style={{ color: colorVar }}>
+        {value}
+      </div>
     </div>
   );
 }
