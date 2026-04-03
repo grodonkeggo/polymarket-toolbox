@@ -103,6 +103,25 @@ export const strategies: Strategy[] = [
     sourcePath: "strategies/wallet-copytrade",
     origin: "PredictionMarket Arbitrage",
   },
+  {
+    id: "late-entry-v3",
+    name: "Late Entry V3 (4coinsbot)",
+    description:
+      "Enters 15-min crypto markets in the last 4 minutes on the favourite side. Parallel WebSocket feeds for BTC/ETH/SOL/XRP with confidence threshold, flip-stop, and time-scaled sizing.",
+    status: "active",
+    runtime: "python",
+    asset: "crypto",
+    tags: ["btc", "eth", "sol", "xrp", "15min", "late-entry", "websocket", "4coins"],
+    sourcePath: "bots/4coinsbot",
+    origin: "github:txbabaxyz/4coinsbot",
+    metrics: {
+      winRate: 0,
+      totalTrades: 0,
+      pnl: 0,
+      avgReturn: 0,
+      maxDrawdown: -12,
+    },
+  },
 ];
 
 export const bots: Bot[] = [
@@ -149,6 +168,21 @@ export const bots: Bot[] = [
       maxTradesPerHour: 50,
       dailyLossLimit: -10,
       assets: ["btc", "eth"],
+    },
+  },
+  {
+    id: "4coinsbot",
+    name: "4coinsbot",
+    description:
+      "Late Entry V3 — parallel 15-min crypto trader with WebSocket feeds, time-scaled sizing, flip-stop, and Telegram notifications",
+    status: "stopped",
+    strategyId: "late-entry-v3",
+    runtime: "python",
+    config: {
+      stakeUsdc: 12,
+      maxTradesPerHour: 16,
+      dailyLossLimit: -48,
+      assets: ["btc", "eth", "sol", "xrp"],
     },
   },
 ];

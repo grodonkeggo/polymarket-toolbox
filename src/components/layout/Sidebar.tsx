@@ -82,7 +82,7 @@ export default function Sidebar() {
 
       <div className="px-4 py-4 border-t" style={{ borderColor: "var(--border)" }}>
         <div className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
-          7 strategies &middot; 3 bots
+          8 strategies &middot; 4 bots
         </div>
       </div>
     </aside>
