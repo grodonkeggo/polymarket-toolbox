@@ -179,9 +179,9 @@ export const bots: Bot[] = [
     strategyId: "late-entry-v3",
     runtime: "python",
     config: {
-      stakeUsdc: 12,
+      stakeUsdc: 1,
       maxTradesPerHour: 16,
-      dailyLossLimit: -48,
+      dailyLossLimit: -5,
       assets: ["btc", "eth", "sol", "xrp"],
     },
   },
