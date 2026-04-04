@@ -222,6 +222,127 @@ export default function BotDetailPage() {
         </div>
       </div>
 
+      {/* How to Run panel */}
+      <div
+        className="rounded-xl border p-4 mb-8"
+        style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            How to Run
+          </h2>
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider"
+            style={{
+              background: "var(--accent-yellow-dim)",
+              color: "var(--accent-yellow)",
+            }}
+          >
+            DRY RUN by default
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {/* CLI command */}
+          {bot.startCommand && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+                Run manually
+              </div>
+              <div
+                className="rounded-lg px-3 py-2 font-mono text-xs flex items-center justify-between"
+                style={{ background: "#0d1117", color: "var(--accent-green)" }}
+              >
+                <span>{bot.startCommand}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(bot.startCommand ?? "")}
+                  className="text-[10px] px-2 py-0.5 rounded ml-3 shrink-0"
+                  style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Working directory */}
+          {bot.cwd && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+                Working directory
+              </div>
+              <div
+                className="rounded-lg px-3 py-2 font-mono text-xs flex items-center justify-between"
+                style={{ background: "#0d1117", color: "var(--text-secondary)" }}
+              >
+                <span>{bot.cwd}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(`cd "${bot.cwd}"`)}
+                  className="text-[10px] px-2 py-0.5 rounded ml-3 shrink-0"
+                  style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Dry Run / Live toggle instructions */}
+          <div>
+            <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+              Switch to live trading
+            </div>
+            <div
+              className="rounded-lg px-3 py-2 text-xs leading-relaxed"
+              style={{ background: "#0d1117", color: "var(--text-secondary)" }}
+            >
+              {bot.id === "4coinsbot" ? (
+                <>
+                  Edit <code className="font-mono px-1 rounded" style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}>config/config.json</code> and set{" "}
+                  <code className="font-mono px-1 rounded" style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}>{`"dry_run": false`}</code>
+                </>
+              ) : (
+                <>
+                  Add <code className="font-mono px-1 rounded" style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}>DRY_RUN=false</code> to the bot&apos;s{" "}
+                  <code className="font-mono px-1 rounded" style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}>.env</code> file, or to{" "}
+                  <code className="font-mono px-1 rounded" style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}>toolbox/.env</code> for dashboard launches
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Install deps */}
+          <div>
+            <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+              First time setup
+            </div>
+            <div
+              className="rounded-lg px-3 py-2 font-mono text-xs flex items-center justify-between"
+              style={{ background: "#0d1117", color: "var(--text-secondary)" }}
+            >
+              <span>
+                {bot.runtime === "python"
+                  ? "pip install -r requirements.txt"
+                  : "npm install"}
+              </span>
+              <button
+                onClick={() =>
+                  navigator.clipboard.writeText(
+                    bot.runtime === "python"
+                      ? "pip install -r requirements.txt"
+                      : "npm install",
+                  )
+                }
+                className="text-[10px] px-2 py-0.5 rounded ml-3 shrink-0"
+                style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Live Logs */}
       {showLogs && (
         <div
