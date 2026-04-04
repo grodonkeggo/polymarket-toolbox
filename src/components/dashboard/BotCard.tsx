@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import type { Bot } from "@/lib/types";
 import { getStrategy } from "@/lib/registry";
-import StatusBadge from "@/components/ui/StatusBadge";
 
 type LiveStatus = "running" | "stopped" | "idle" | "error";
 
@@ -13,8 +12,22 @@ export default function BotCard({ bot }: { bot: Bot }) {
   const [status, setStatus] = useState<LiveStatus>(bot.status as LiveStatus);
   const [busy, setBusy] = useState(false);
 
+  // Fetch live status on mount + poll every 5s
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`/api/bots/${bot.id}/status`);
+        const data = await res.json();
+        if (data.status) setStatus(data.status);
+      } catch { /* ignore */ }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
+  }, [bot.id]);
+
   const sendAction = async (e: React.MouseEvent, action: "start" | "stop") => {
-    e.preventDefault(); // Don't navigate when clicking buttons
+    e.preventDefault();
     e.stopPropagation();
     setBusy(true);
     try {
@@ -59,7 +72,13 @@ export default function BotCard({ bot }: { bot: Bot }) {
             color: statusColor,
           }}
         >
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusColor }} />
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: statusColor,
+              boxShadow: status === "running" ? "0 0 6px var(--accent-green)" : "none",
+            }}
+          />
           {status}
         </span>
       </div>
