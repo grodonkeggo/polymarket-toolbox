@@ -1,4 +1,4 @@
-import { bots } from "@/lib/registry";
+import { visibleBots as bots } from "@/lib/registry";
 import BotCard from "@/components/dashboard/BotCard";
 
 export default function BotsPage() {

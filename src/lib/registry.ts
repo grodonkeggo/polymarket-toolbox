@@ -54,6 +54,7 @@ export const strategies: Strategy[] = [
     tags: ["arbitrage", "spread", "market-making"],
     sourcePath: "strategies/clob-arbitrage",
     origin: "Polymarket Crypto Sports arbitrage Tradingbot",
+    hidden: true,
   },
   {
     id: "copytrade-momentum",
@@ -90,6 +91,7 @@ export const strategies: Strategy[] = [
     tags: ["arbitrage", "kalshi", "cross-platform"],
     sourcePath: "strategies/cross-platform-arb",
     origin: "PredictionMarket Arbitrage",
+    hidden: true,
   },
   {
     id: "wallet-copytrade",
@@ -133,6 +135,8 @@ export const bots: Bot[] = [
     strategyId: "orb-breakout",
     runtime: "python",
     endpoint: "http://localhost:8000",
+    startCommand: "python -m uvicorn main:app --host 0.0.0.0 --port 8000",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 10,
@@ -149,6 +153,8 @@ export const bots: Bot[] = [
     strategyId: "momentum-heavy-fav",
     runtime: "python",
     endpoint: "http://localhost:8000",
+    startCommand: "python momentum_bot.py",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 20,
@@ -163,6 +169,7 @@ export const bots: Bot[] = [
     status: "stopped",
     strategyId: "clob-arbitrage",
     runtime: "typescript",
+    hidden: true,
     config: {
       stakeUsdc: 5,
       maxTradesPerHour: 50,
@@ -178,6 +185,8 @@ export const bots: Bot[] = [
     status: "stopped",
     strategyId: "late-entry-v3",
     runtime: "python",
+    startCommand: "python main.py",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/polymarket-toolbox/bots/4coinsbot/src",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 16,
@@ -186,6 +195,11 @@ export const bots: Bot[] = [
     },
   },
 ];
+
+// ── Filtered lists (exclude hidden) ──
+
+export const visibleStrategies = strategies.filter((s) => !s.hidden);
+export const visibleBots = bots.filter((b) => !b.hidden);
 
 // ── Lookup helpers ──
 
@@ -198,13 +212,13 @@ export function getBot(id: string): Bot | undefined {
 }
 
 export function getBotsForStrategy(strategyId: string): Bot[] {
-  return bots.filter((b) => b.strategyId === strategyId);
+  return visibleBots.filter((b) => b.strategyId === strategyId);
 }
 
 export function getStrategiesByAsset(asset: string): Strategy[] {
-  return strategies.filter((s) => s.asset === asset);
+  return visibleStrategies.filter((s) => s.asset === asset);
 }
 
 export function getStrategiesByTag(tag: string): Strategy[] {
-  return strategies.filter((s) => s.tags.includes(tag));
+  return visibleStrategies.filter((s) => s.tags.includes(tag));
 }

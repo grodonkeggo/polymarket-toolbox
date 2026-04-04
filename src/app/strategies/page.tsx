@@ -1,4 +1,4 @@
-import { strategies } from "@/lib/registry";
+import { visibleStrategies as strategies } from "@/lib/registry";
 import StrategyCard from "@/components/dashboard/StrategyCard";
 
 export default function StrategiesPage() {

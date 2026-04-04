@@ -1,4 +1,4 @@
-import { strategies, bots } from "@/lib/registry";
+import { visibleStrategies as strategies, visibleBots as bots } from "@/lib/registry";
 import StrategyCard from "@/components/dashboard/StrategyCard";
 import BotCard from "@/components/dashboard/BotCard";
 

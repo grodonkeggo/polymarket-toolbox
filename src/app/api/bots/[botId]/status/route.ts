@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBotStatus, setBotStatus } from "@/lib/bot-state";
 import { getBot } from "@/lib/registry";
+import { startBot, stopBot, getBotProcessInfo, getBotLogs, isLocal } from "@/lib/bot-runner";
 
 export async function GET(
   _req: NextRequest,
@@ -10,7 +11,14 @@ export async function GET(
   const bot = getBot(botId);
   if (!bot) return NextResponse.json({ error: "Bot not found" }, { status: 404 });
 
-  return NextResponse.json({ botId, status: getBotStatus(botId) || bot.status });
+  const processInfo = getBotProcessInfo(botId);
+
+  return NextResponse.json({
+    botId,
+    status: processInfo.running ? "running" : (getBotStatus(botId) || bot.status),
+    canLaunch: isLocal() && !!bot.startCommand,
+    process: processInfo,
+  });
 }
 
 export async function POST(
@@ -25,19 +33,42 @@ export async function POST(
   const action = body.action as string;
 
   if (action === "start") {
-    setBotStatus(botId, "running");
-    return NextResponse.json({ botId, status: "running", message: `${bot.name} started` });
+    const result = startBot(botId);
+    return NextResponse.json({
+      botId,
+      status: result.ok ? "running" : (getBotStatus(botId) || bot.status),
+      message: result.message,
+      ok: result.ok,
+    });
   }
 
   if (action === "stop") {
-    setBotStatus(botId, "stopped");
-    return NextResponse.json({ botId, status: "stopped", message: `${bot.name} stopped` });
+    const result = stopBot(botId);
+    return NextResponse.json({
+      botId,
+      status: "stopped",
+      message: result.message,
+      ok: result.ok,
+    });
   }
 
   if (action === "pause") {
+    // Pause = stop for now (graceful shutdown)
+    const result = stopBot(botId);
     setBotStatus(botId, "idle");
-    return NextResponse.json({ botId, status: "idle", message: `${bot.name} paused` });
+    return NextResponse.json({
+      botId,
+      status: "idle",
+      message: result.message,
+      ok: result.ok,
+    });
   }
 
-  return NextResponse.json({ error: "Invalid action. Use: start, stop, pause" }, { status: 400 });
+  if (action === "logs") {
+    const tail = body.tail ?? 100;
+    const logs = getBotLogs(botId, tail);
+    return NextResponse.json({ botId, logs });
+  }
+
+  return NextResponse.json({ error: "Invalid action. Use: start, stop, pause, logs" }, { status: 400 });
 }

@@ -1,4 +1,4 @@
-import { strategies } from "@/lib/registry";
+import { visibleStrategies as strategies } from "@/lib/registry";
 
 export default function BacktestPage() {
   return (

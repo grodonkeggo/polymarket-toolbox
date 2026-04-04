@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Trade, BotAnalytics } from "@/lib/trades";
@@ -17,10 +17,16 @@ export default function BotDetailPage() {
   const [status, setStatus] = useState<BotStatus>(
     (bot?.status as BotStatus) ?? "stopped",
   );
+  const [canLaunch, setCanLaunch] = useState(false);
+  const [processInfo, setProcessInfo] = useState<{ pid: number | null; startedAt: string | null } | null>(null);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [analytics, setAnalytics] = useState<BotAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   const fetchTrades = useCallback(async () => {
     if (!botId) return;
@@ -39,15 +45,44 @@ export default function BotDetailPage() {
     const res = await fetch(`/api/bots/${botId}/status`);
     const data = await res.json();
     if (data.status) setStatus(data.status);
+    if (data.canLaunch !== undefined) setCanLaunch(data.canLaunch);
+    if (data.process) setProcessInfo(data.process);
   }, [botId]);
+
+  const fetchLogs = useCallback(async () => {
+    if (!botId || !showLogs) return;
+    const res = await fetch(`/api/bots/${botId}/status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "logs", tail: 200 }),
+    });
+    const data = await res.json();
+    if (data.logs) setLogs(data.logs);
+  }, [botId, showLogs]);
 
   useEffect(() => {
     fetchTrades();
     fetchStatus();
   }, [fetchTrades, fetchStatus]);
 
+  // Poll status + logs while running
+  useEffect(() => {
+    if (status !== "running") return;
+    const interval = setInterval(() => {
+      fetchStatus();
+      if (showLogs) fetchLogs();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [status, showLogs, fetchStatus, fetchLogs]);
+
+  // Auto-scroll logs
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [logs]);
+
   const sendAction = async (action: "start" | "stop" | "pause") => {
     setActionLoading(true);
+    setActionMessage(null);
     try {
       const res = await fetch(`/api/bots/${botId}/status`, {
         method: "POST",
@@ -56,6 +91,10 @@ export default function BotDetailPage() {
       });
       const data = await res.json();
       if (data.status) setStatus(data.status);
+      if (data.message) setActionMessage(data.message);
+      if (action === "start" && data.ok) setShowLogs(true);
+      // Refresh status after action
+      setTimeout(fetchStatus, 500);
     } finally {
       setActionLoading(false);
     }
@@ -122,39 +161,95 @@ export default function BotDetailPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex gap-2">
-          {status !== "running" && (
-            <button
-              onClick={() => sendAction("start")}
-              disabled={actionLoading}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
-              style={{ background: "var(--accent-green-dim)", color: "var(--accent-green)" }}
-            >
-              {actionLoading ? "..." : "Start"}
-            </button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-2">
+            {status !== "running" && (
+              <button
+                onClick={() => sendAction("start")}
+                disabled={actionLoading || !canLaunch}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
+                style={{ background: "var(--accent-green-dim)", color: "var(--accent-green)" }}
+                title={!canLaunch ? "Only available when running locally" : ""}
+              >
+                {actionLoading ? "..." : "Start"}
+              </button>
+            )}
+            {status === "running" && (
+              <>
+                <button
+                  onClick={() => sendAction("pause")}
+                  disabled={actionLoading}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
+                  style={{ background: "var(--accent-yellow-dim)", color: "var(--accent-yellow)" }}
+                >
+                  {actionLoading ? "..." : "Pause"}
+                </button>
+                <button
+                  onClick={() => setShowLogs((v) => !v)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ background: "var(--accent-purple-dim)", color: "var(--accent-purple)" }}
+                >
+                  {showLogs ? "Hide Logs" : "Logs"}
+                </button>
+              </>
+            )}
+            {status !== "stopped" && (
+              <button
+                onClick={() => sendAction("stop")}
+                disabled={actionLoading}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
+                style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}
+              >
+                {actionLoading ? "..." : "Stop"}
+              </button>
+            )}
+          </div>
+          {!canLaunch && (
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              Launch available on localhost only
+            </span>
           )}
-          {status === "running" && (
-            <button
-              onClick={() => sendAction("pause")}
-              disabled={actionLoading}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
-              style={{ background: "var(--accent-yellow-dim)", color: "var(--accent-yellow)" }}
-            >
-              {actionLoading ? "..." : "Pause"}
-            </button>
+          {processInfo?.pid && (
+            <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
+              PID {processInfo.pid} &middot; since {new Date(processInfo.startedAt ?? "").toLocaleTimeString()}
+            </span>
           )}
-          {status !== "stopped" && (
-            <button
-              onClick={() => sendAction("stop")}
-              disabled={actionLoading}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-opacity disabled:opacity-50"
-              style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}
-            >
-              {actionLoading ? "..." : "Stop"}
-            </button>
+          {actionMessage && (
+            <span className="text-[10px]" style={{ color: "var(--accent-blue)" }}>
+              {actionMessage}
+            </span>
           )}
         </div>
       </div>
+
+      {/* Live Logs */}
+      {showLogs && (
+        <div
+          className="rounded-xl border mb-8 overflow-hidden"
+          style={{ background: "#0d1117", borderColor: "var(--border)" }}
+        >
+          <div className="px-4 py-2 border-b flex justify-between items-center" style={{ borderColor: "var(--border)" }}>
+            <h2 className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+              Live Output
+            </h2>
+            <span className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
+              {logs.length} lines &middot; auto-refresh 3s
+            </span>
+          </div>
+          <div className="p-3 max-h-64 overflow-y-auto font-mono text-[11px] leading-relaxed" style={{ color: "var(--accent-green)" }}>
+            {logs.length === 0 ? (
+              <span style={{ color: "var(--text-muted)" }}>Waiting for output...</span>
+            ) : (
+              logs.map((line, i) => (
+                <div key={i} style={{ color: line.includes("[stderr]") ? "var(--accent-yellow)" : line.includes("[system]") ? "var(--accent-red)" : "var(--accent-green)" }}>
+                  {line}
+                </div>
+              ))
+            )}
+            <div ref={logsEndRef} />
+          </div>
+        </div>
+      )}
 
       {/* Analytics cards */}
       {analytics && (

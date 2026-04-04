@@ -17,6 +17,8 @@ export interface Strategy {
   sourcePath: string;
   /** Which existing project this was imported from, if any */
   origin?: string;
+  /** Hidden from UI but kept in registry for reference */
+  hidden?: boolean;
   metrics?: StrategyMetrics;
   config?: Record<string, unknown>;
 }
@@ -40,6 +42,12 @@ export interface Bot {
   runtime: StrategyRuntime;
   /** Endpoint or process info for the running bot */
   endpoint?: string;
+  /** Shell command to start this bot */
+  startCommand?: string;
+  /** Working directory for the start command */
+  cwd?: string;
+  /** Hidden from UI but kept in registry for reference */
+  hidden?: boolean;
   config: BotConfig;
   stats?: BotStats;
 }

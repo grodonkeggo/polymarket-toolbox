@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { visibleStrategies, visibleBots } from "@/lib/registry";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: "grid" },
@@ -82,7 +83,7 @@ export default function Sidebar() {
 
       <div className="px-4 py-4 border-t" style={{ borderColor: "var(--border)" }}>
         <div className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>
-          8 strategies &middot; 4 bots
+          {visibleStrategies.length} strategies &middot; {visibleBots.length} bots
         </div>
       </div>
     </aside>
