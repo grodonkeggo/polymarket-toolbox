@@ -52,7 +52,7 @@ class SafetyGuard:
         msg += f"Max total investment: ${self.max_total_investment}\n"
         msg += f"{'='*80}\n"
         
-        with open(self.safety_log, 'a') as f:
+        with open(self.safety_log, 'a', encoding='utf-8') as f:
             f.write(msg)
         
         print(msg)
@@ -117,7 +117,7 @@ class SafetyGuard:
         self.invested_per_market[market_slug] += order_size_usd
         
         # Write to log
-        with open(self.safety_log, 'a') as f:
+        with open(self.safety_log, 'a', encoding='utf-8') as f:
             f.write(json.dumps(order) + '\n')
     
     def reset_market(self, market_slug: str):
@@ -133,7 +133,7 @@ class SafetyGuard:
             print(f"[SAFETY] ♻️ Investment tracking reset for {market_slug} (was ${invested_amount:.2f})")
             
             # Write to log
-            with open(self.safety_log, 'a') as f:
+            with open(self.safety_log, 'a', encoding='utf-8') as f:
                 f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] RESET_MARKET: {market_slug} (${invested_amount:.2f})\n")
     
     def get_market_investment(self, market_slug: str) -> float:
@@ -150,5 +150,5 @@ class SafetyGuard:
         msg = f"\n🚨 EMERGENCY STOP ACTIVATED: {reason}\n"
         print(msg)
         
-        with open(self.safety_log, 'a') as f:
+        with open(self.safety_log, 'a', encoding='utf-8') as f:
             f.write(msg)
