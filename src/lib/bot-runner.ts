@@ -51,6 +51,8 @@ export function startBot(botId: string): { ok: boolean; message: string } {
         ...process.env,
         PYTHONUTF8: "1",
         PYTHONIOENCODING: "utf-8",
+        // Default to dry-run for safety — set DRY_RUN=false in .env to go live
+        DRY_RUN: process.env.DRY_RUN ?? "true",
       },
     });
 

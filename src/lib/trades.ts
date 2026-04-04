@@ -43,13 +43,13 @@ export interface BotAnalytics {
 
 const LOG_PATHS: Record<string, string[]> = {
   "orb-bot": [
-    process.env.ORB_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server/orb_trades.jsonl",
+    process.env.ORB_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/orb-bot/orb_trades.jsonl",
   ],
   "momentum-bot": [
-    process.env.MOMENTUM_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server/momentum_live_trades.jsonl",
+    process.env.MOMENTUM_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/momentum-bot/momentum_live_trades.jsonl",
   ],
   "arb-bot": [
-    process.env.ARB_SIGNALS_PATH ?? "C:/Users/bapti/Documents/AI/Trading/PredictionMarket Arbitrage/bot-signals.jsonl",
+    process.env.ARB_SIGNALS_PATH ?? "",
   ],
   "4coinsbot": [
     // 4coinsbot logs to logs/trades.jsonl at runtime — check both local and source locations

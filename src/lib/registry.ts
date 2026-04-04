@@ -136,7 +136,7 @@ export const bots: Bot[] = [
     runtime: "python",
     endpoint: "http://localhost:8000",
     startCommand: "python -m uvicorn main:app --host 0.0.0.0 --port 8000",
-    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/orb-bot",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 10,
@@ -154,7 +154,7 @@ export const bots: Bot[] = [
     runtime: "python",
     endpoint: "http://localhost:8000",
     startCommand: "python momentum_bot.py",
-    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/momentum-bot",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 20,
@@ -186,7 +186,7 @@ export const bots: Bot[] = [
     strategyId: "late-entry-v3",
     runtime: "python",
     startCommand: "python main.py",
-    cwd: "C:/Users/bapti/Documents/AI/Trading/polymarket-toolbox/bots/4coinsbot/src",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/toolbox/bots/4coinsbot/src",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 16,
