@@ -1,10 +1,41 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import type { Bot } from "@/lib/types";
 import { getStrategy } from "@/lib/registry";
 import StatusBadge from "@/components/ui/StatusBadge";
 
+type LiveStatus = "running" | "stopped" | "idle" | "error";
+
 export default function BotCard({ bot }: { bot: Bot }) {
   const strategy = getStrategy(bot.strategyId);
+  const [status, setStatus] = useState<LiveStatus>(bot.status as LiveStatus);
+  const [busy, setBusy] = useState(false);
+
+  const sendAction = async (e: React.MouseEvent, action: "start" | "stop") => {
+    e.preventDefault(); // Don't navigate when clicking buttons
+    e.stopPropagation();
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/bots/${bot.id}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (data.status) setStatus(data.status);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const statusColor =
+    status === "running"
+      ? "var(--accent-green)"
+      : status === "error"
+        ? "var(--accent-red)"
+        : "var(--text-muted)";
 
   return (
     <Link
@@ -21,7 +52,16 @@ export default function BotCard({ bot }: { bot: Bot }) {
             {bot.runtime} &middot; {strategy?.name ?? bot.strategyId}
           </p>
         </div>
-        <StatusBadge status={bot.status} />
+        <span
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium uppercase tracking-wider"
+          style={{
+            background: status === "running" ? "var(--accent-green-dim)" : status === "error" ? "var(--accent-red-dim)" : "rgba(138,150,168,0.1)",
+            color: statusColor,
+          }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusColor }} />
+          {status}
+        </span>
       </div>
 
       <p className="text-xs leading-relaxed mb-3" style={{ color: "var(--text-secondary)" }}>
@@ -58,11 +98,38 @@ export default function BotCard({ bot }: { bot: Bot }) {
         </div>
       </div>
 
+      {/* Action buttons */}
       <div
-        className="mt-3 pt-2 border-t text-center text-[10px] font-medium uppercase tracking-wider"
-        style={{ borderColor: "var(--border)", color: "var(--accent-blue)" }}
+        className="mt-3 pt-3 border-t flex items-center justify-between"
+        style={{ borderColor: "var(--border)" }}
       >
-        View trades &amp; analytics &rarr;
+        <span
+          className="text-[10px] font-medium uppercase tracking-wider"
+          style={{ color: "var(--accent-blue)" }}
+        >
+          Trades &amp; analytics &rarr;
+        </span>
+        <div className="flex gap-1.5">
+          {status !== "running" ? (
+            <button
+              onClick={(e) => sendAction(e, "start")}
+              disabled={busy}
+              className="px-3 py-1 rounded-md text-[11px] font-medium transition-opacity disabled:opacity-50"
+              style={{ background: "var(--accent-green-dim)", color: "var(--accent-green)" }}
+            >
+              {busy ? "..." : "Start"}
+            </button>
+          ) : (
+            <button
+              onClick={(e) => sendAction(e, "stop")}
+              disabled={busy}
+              className="px-3 py-1 rounded-md text-[11px] font-medium transition-opacity disabled:opacity-50"
+              style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}
+            >
+              {busy ? "..." : "Stop"}
+            </button>
+          )}
+        </div>
       </div>
     </Link>
   );
