@@ -26,6 +26,8 @@ export default function BotDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [dryRun, setDryRun] = useState(true);
+  const [modeLoading, setModeLoading] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const fetchTrades = useCallback(async () => {
@@ -46,6 +48,7 @@ export default function BotDetailPage() {
     const data = await res.json();
     if (data.status) setStatus(data.status);
     if (data.canLaunch !== undefined) setCanLaunch(data.canLaunch);
+    if (data.dryRun !== undefined) setDryRun(data.dryRun);
     if (data.process) setProcessInfo(data.process);
   }, [botId]);
 
@@ -79,6 +82,22 @@ export default function BotDetailPage() {
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
+
+  const toggleMode = async () => {
+    setModeLoading(true);
+    try {
+      const res = await fetch(`/api/bots/${botId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "setMode", dryRun: !dryRun }),
+      });
+      const data = await res.json();
+      if (data.dryRun !== undefined) setDryRun(data.dryRun);
+      if (data.message) setActionMessage(data.message);
+    } finally {
+      setModeLoading(false);
+    }
+  };
 
   const sendAction = async (action: "start" | "stop" | "pause") => {
     setActionLoading(true);
@@ -222,125 +241,68 @@ export default function BotDetailPage() {
         </div>
       </div>
 
-      {/* How to Run panel */}
+      {/* Trading Mode */}
       <div
         className="rounded-xl border p-4 mb-8"
         style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            How to Run
-          </h2>
-          <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wider"
-            style={{
-              background: "var(--accent-yellow-dim)",
-              color: "var(--accent-yellow)",
-            }}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Trading Mode
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              {dryRun
+                ? "Paper trading — connects to real feeds, logs signals, no real orders"
+                : "Live trading — real orders, real USDC spent"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: dryRun ? "var(--text-muted)" : "var(--accent-red)" }}
+            >
+              {dryRun ? "Dry Run" : "Live"}
+            </span>
+
+            {/* Toggle switch */}
+            <button
+              onClick={toggleMode}
+              disabled={modeLoading || status === "running"}
+              title={status === "running" ? "Stop the bot before switching mode" : ""}
+              className="relative inline-flex h-7 w-14 items-center rounded-full transition-colors disabled:opacity-50"
+              style={{
+                background: dryRun ? "var(--accent-blue)" : "var(--accent-red)",
+              }}
+            >
+              <span
+                className="inline-block h-5 w-5 rounded-full bg-white transition-transform"
+                style={{
+                  transform: dryRun ? "translateX(4px)" : "translateX(32px)",
+                }}
+              />
+            </button>
+          </div>
+        </div>
+
+        {!dryRun && (
+          <div
+            className="mt-3 rounded-lg px-3 py-2 text-xs flex items-center gap-2"
+            style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}
           >
-            DRY RUN by default
-          </span>
-        </div>
-
-        <div className="space-y-3">
-          {/* CLI command */}
-          {bot.startCommand && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
-                Run manually
-              </div>
-              <div
-                className="rounded-lg px-3 py-2 font-mono text-xs flex items-center justify-between"
-                style={{ background: "#0d1117", color: "var(--accent-green)" }}
-              >
-                <span>{bot.startCommand}</span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(bot.startCommand ?? "")}
-                  className="text-[10px] px-2 py-0.5 rounded ml-3 shrink-0"
-                  style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Working directory */}
-          {bot.cwd && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
-                Working directory
-              </div>
-              <div
-                className="rounded-lg px-3 py-2 font-mono text-xs flex items-center justify-between"
-                style={{ background: "#0d1117", color: "var(--text-secondary)" }}
-              >
-                <span>{bot.cwd}</span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(`cd "${bot.cwd}"`)}
-                  className="text-[10px] px-2 py-0.5 rounded ml-3 shrink-0"
-                  style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Dry Run / Live toggle instructions */}
-          <div>
-            <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
-              Switch to live trading
-            </div>
-            <div
-              className="rounded-lg px-3 py-2 text-xs leading-relaxed"
-              style={{ background: "#0d1117", color: "var(--text-secondary)" }}
-            >
-              {bot.id === "4coinsbot" ? (
-                <>
-                  Edit <code className="font-mono px-1 rounded" style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}>config/config.json</code> and set{" "}
-                  <code className="font-mono px-1 rounded" style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}>{`"dry_run": false`}</code>
-                </>
-              ) : (
-                <>
-                  Add <code className="font-mono px-1 rounded" style={{ background: "var(--accent-red-dim)", color: "var(--accent-red)" }}>DRY_RUN=false</code> to the bot&apos;s{" "}
-                  <code className="font-mono px-1 rounded" style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}>.env</code> file, or to{" "}
-                  <code className="font-mono px-1 rounded" style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}>toolbox/.env</code> for dashboard launches
-                </>
-              )}
-            </div>
+            <span className="font-bold">WARNING:</span> Bot will place real orders and spend real USDC when started.
           </div>
+        )}
 
-          {/* Install deps */}
-          <div>
-            <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
-              First time setup
-            </div>
-            <div
-              className="rounded-lg px-3 py-2 font-mono text-xs flex items-center justify-between"
-              style={{ background: "#0d1117", color: "var(--text-secondary)" }}
-            >
-              <span>
-                {bot.runtime === "python"
-                  ? "pip install -r requirements.txt"
-                  : "npm install"}
-              </span>
-              <button
-                onClick={() =>
-                  navigator.clipboard.writeText(
-                    bot.runtime === "python"
-                      ? "pip install -r requirements.txt"
-                      : "npm install",
-                  )
-                }
-                className="text-[10px] px-2 py-0.5 rounded ml-3 shrink-0"
-                style={{ background: "var(--accent-blue-dim)", color: "var(--accent-blue)" }}
-              >
-                Copy
-              </button>
-            </div>
+        {status === "running" && (
+          <div
+            className="mt-2 text-[10px]"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Stop the bot to change trading mode. Current session: {dryRun ? "dry run" : "live"}.
           </div>
-        </div>
+        )}
       </div>
 
       {/* Live Logs */}

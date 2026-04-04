@@ -12,10 +12,20 @@ interface RunningBot {
   pid: number;
   startedAt: string;
   logs: string[];
+  dryRun: boolean;
 }
 
 const MAX_LOG_LINES = 500;
 const runningBots = new Map<string, RunningBot>();
+const botDryRunMode = new Map<string, boolean>();
+
+export function getDryRun(botId: string): boolean {
+  return botDryRunMode.get(botId) ?? true; // default to dry-run
+}
+
+export function setDryRun(botId: string, dryRun: boolean): void {
+  botDryRunMode.set(botId, dryRun);
+}
 
 export function isLocal(): boolean {
   return !process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME;
@@ -51,8 +61,7 @@ export function startBot(botId: string): { ok: boolean; message: string } {
         ...process.env,
         PYTHONUTF8: "1",
         PYTHONIOENCODING: "utf-8",
-        // Default to dry-run for safety — set DRY_RUN=false in .env to go live
-        DRY_RUN: process.env.DRY_RUN ?? "true",
+        DRY_RUN: getDryRun(botId) ? "true" : "false",
       },
     });
 
@@ -86,6 +95,7 @@ export function startBot(botId: string): { ok: boolean; message: string } {
       pid: child.pid ?? 0,
       startedAt: new Date().toISOString(),
       logs,
+      dryRun: getDryRun(botId),
     });
 
     setBotStatus(botId, "running");
@@ -134,15 +144,17 @@ export function getBotProcessInfo(botId: string): {
   pid: number | null;
   startedAt: string | null;
   logCount: number;
+  dryRun: boolean;
 } {
   const running = runningBots.get(botId);
   if (!running) {
-    return { running: false, pid: null, startedAt: null, logCount: 0 };
+    return { running: false, pid: null, startedAt: null, logCount: 0, dryRun: getDryRun(botId) };
   }
   return {
     running: true,
     pid: running.pid,
     startedAt: running.startedAt,
     logCount: running.logs.length,
+    dryRun: running.dryRun,
   };
 }

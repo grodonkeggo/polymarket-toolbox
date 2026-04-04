@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBotStatus, setBotStatus } from "@/lib/bot-state";
 import { getBot } from "@/lib/registry";
-import { startBot, stopBot, getBotProcessInfo, getBotLogs, isLocal } from "@/lib/bot-runner";
+import { startBot, stopBot, getBotProcessInfo, getBotLogs, isLocal, getDryRun, setDryRun } from "@/lib/bot-runner";
 
 export async function GET(
   _req: NextRequest,
@@ -17,6 +17,7 @@ export async function GET(
     botId,
     status: processInfo.running ? "running" : (getBotStatus(botId) || bot.status),
     canLaunch: isLocal() && !!bot.startCommand,
+    dryRun: getDryRun(botId),
     process: processInfo,
   });
 }
@@ -38,6 +39,7 @@ export async function POST(
       botId,
       status: result.ok ? "running" : (getBotStatus(botId) || bot.status),
       message: result.message,
+      dryRun: getDryRun(botId),
       ok: result.ok,
     });
   }
@@ -53,7 +55,6 @@ export async function POST(
   }
 
   if (action === "pause") {
-    // Pause = stop for now (graceful shutdown)
     const result = stopBot(botId);
     setBotStatus(botId, "idle");
     return NextResponse.json({
@@ -64,11 +65,22 @@ export async function POST(
     });
   }
 
+  if (action === "setMode") {
+    const dryRun = body.dryRun !== false; // default to true if not explicitly false
+    setDryRun(botId, dryRun);
+    return NextResponse.json({
+      botId,
+      dryRun,
+      message: dryRun ? "Switched to DRY RUN (paper trading)" : "Switched to LIVE (real orders)",
+      ok: true,
+    });
+  }
+
   if (action === "logs") {
     const tail = body.tail ?? 100;
     const logs = getBotLogs(botId, tail);
     return NextResponse.json({ botId, logs });
   }
 
-  return NextResponse.json({ error: "Invalid action. Use: start, stop, pause, logs" }, { status: 400 });
+  return NextResponse.json({ error: "Invalid action. Use: start, stop, pause, setMode, logs" }, { status: 400 });
 }
