@@ -159,12 +159,12 @@ export default function BotDetailPage() {
       {/* Analytics cards */}
       {analytics && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
-          <StatCard label="Trades" value={String(analytics.totalTrades)} />
-          <StatCard label="Win Rate" value={`${(analytics.winRate * 100).toFixed(1)}%`} accent={analytics.winRate >= 0.5 ? "green" : "red"} />
-          <StatCard label="Total PnL" value={`$${analytics.totalPnl.toFixed(2)}`} accent={analytics.totalPnl >= 0 ? "green" : "red"} />
-          <StatCard label="Avg PnL" value={`$${analytics.avgPnl.toFixed(4)}`} accent={analytics.avgPnl >= 0 ? "green" : "red"} />
-          <StatCard label="Best Trade" value={`$${analytics.bestTrade.toFixed(4)}`} accent="green" />
-          <StatCard label="Max DD" value={`$${analytics.maxDrawdown.toFixed(2)}`} accent="red" />
+          <StatCard label="Resolved" value={String(analytics.totalTrades)} />
+          <StatCard label="Open" value={String(analytics.open)} accent={analytics.open > 0 ? "blue" : undefined} />
+          <StatCard label="Win Rate" value={analytics.totalTrades > 0 ? `${(analytics.winRate * 100).toFixed(1)}%` : "—"} accent={analytics.totalTrades > 0 ? (analytics.winRate >= 0.5 ? "green" : "red") : undefined} />
+          <StatCard label="Total PnL" value={analytics.totalTrades > 0 ? `$${analytics.totalPnl.toFixed(2)}` : "—"} accent={analytics.totalTrades > 0 ? (analytics.totalPnl >= 0 ? "green" : "red") : undefined} />
+          <StatCard label="Best Trade" value={analytics.totalTrades > 0 ? `$${analytics.bestTrade.toFixed(4)}` : "—"} accent={analytics.totalTrades > 0 ? "green" : undefined} />
+          <StatCard label="Max DD" value={analytics.totalTrades > 0 ? `$${analytics.maxDrawdown.toFixed(2)}` : "—"} accent={analytics.totalTrades > 0 ? "red" : undefined} />
         </div>
       )}
 
@@ -354,14 +354,16 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  accent?: "green" | "red";
+  accent?: "green" | "red" | "blue";
 }) {
   const colorVar =
     accent === "green"
       ? "var(--accent-green)"
       : accent === "red"
         ? "var(--accent-red)"
-        : "var(--text-primary)";
+        : accent === "blue"
+          ? "var(--accent-blue)"
+          : "var(--text-primary)";
 
   return (
     <div

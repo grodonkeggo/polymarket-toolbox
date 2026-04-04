@@ -1,6 +1,9 @@
 // ── Trade history & analytics engine ──
-// In production this reads from JSONL logs or a database.
-// For now, provides typed interfaces + mock data for the dashboard.
+// Reads real JSONL trade logs from existing bot projects.
+// Falls back to empty arrays when log files aren't found.
+
+import { readFileSync, existsSync } from "fs";
+import path from "path";
 
 export interface Trade {
   id: string;
@@ -16,12 +19,15 @@ export interface Trade {
   pnl: number | null;
   status: "open" | "won" | "lost" | "stopped";
   resolution?: string;
+  /** Extra fields preserved from the source log */
+  meta?: Record<string, unknown>;
 }
 
 export interface BotAnalytics {
   totalTrades: number;
   wins: number;
   losses: number;
+  open: number;
   winRate: number;
   totalPnl: number;
   avgPnl: number;
@@ -33,8 +39,233 @@ export interface BotAnalytics {
   pnlCurve: Array<{ timestamp: string; cumPnl: number }>;
 }
 
+// ── JSONL file locations (configurable via env) ──
+
+const LOG_PATHS: Record<string, string[]> = {
+  "orb-bot": [
+    process.env.ORB_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server/orb_trades.jsonl",
+  ],
+  "momentum-bot": [
+    process.env.MOMENTUM_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket BTC 5min/server/momentum_live_trades.jsonl",
+  ],
+  "arb-bot": [
+    process.env.ARB_SIGNALS_PATH ?? "C:/Users/bapti/Documents/AI/Trading/PredictionMarket Arbitrage/bot-signals.jsonl",
+  ],
+  "4coinsbot": [
+    // 4coinsbot logs to logs/trades.jsonl at runtime — check both local and source locations
+    process.env.FOURCOINS_TRADES_PATH ?? "",
+  ],
+};
+
+// ── JSONL reader ──
+
+function readJsonl<T>(filePath: string, maxLines = 5000): T[] {
+  if (!filePath || !existsSync(filePath)) return [];
+  try {
+    const content = readFileSync(filePath, "utf-8");
+    const lines = content.trim().split("\n");
+    // Take last N lines for performance on large files
+    const slice = lines.slice(-maxLines);
+    const results: T[] = [];
+    for (const line of slice) {
+      if (!line.trim()) continue;
+      try {
+        results.push(JSON.parse(line));
+      } catch {
+        // skip malformed lines
+      }
+    }
+    return results;
+  } catch {
+    return [];
+  }
+}
+
+// ── Format-specific parsers ──
+
+interface OrbTradeRaw {
+  time: string;
+  side: string;
+  conf: number;
+  delta: number;
+  btc_price: number;
+  mkt_price: number;
+  edge: number;
+  stake: number;
+  question: string;
+  market_id: string;
+  token_id: string;
+  end_ts: number;
+  bucket_wr: number;
+  outcome: string;
+  pnl: number | null;
+  order?: {
+    orderID?: string;
+    fill_usdc?: number;
+    fill_shares?: number;
+    status?: string;
+  };
+  event: string;
+}
+
+function parseOrbTrades(filePath: string): Trade[] {
+  const raw = readJsonl<OrbTradeRaw>(filePath);
+  // Group by entry events, merge outcome events
+  const entryMap = new Map<string, Trade>();
+
+  for (const r of raw) {
+    const key = `${r.market_id}-${r.end_ts}`;
+
+    if (r.event === "entry") {
+      entryMap.set(key, {
+        id: r.order?.orderID ?? key,
+        botId: "orb-bot",
+        timestamp: r.time,
+        market: r.question ?? `BTC-5MIN-${r.end_ts}`,
+        asset: "BTC",
+        direction: "buy",
+        outcome: r.side?.toUpperCase() as "UP" | "DOWN",
+        entryPrice: r.mkt_price,
+        exitPrice: null,
+        contracts: r.order?.fill_shares ?? Math.round(r.stake / r.mkt_price),
+        pnl: null,
+        status: "open",
+        meta: { conf: r.conf, delta: r.delta, btcPrice: r.btc_price, bucketWr: r.bucket_wr, edge: r.edge },
+      });
+    } else if (r.event === "outcome") {
+      const existing = entryMap.get(key);
+      if (existing) {
+        existing.pnl = r.pnl;
+        existing.exitPrice = r.outcome === "won" ? 1.0 : 0;
+        existing.status = r.outcome === "won" ? "won" : r.outcome === "lost" ? "lost" : "open";
+      }
+    }
+  }
+
+  return Array.from(entryMap.values()).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
+interface MomentumTradeRaw {
+  asset: string;
+  direction: string;
+  market_key: string;
+  market_id: string;
+  token_id: string;
+  question: string;
+  entry_price: number;
+  stake: number;
+  fill_usdc: number;
+  fill_shares: number;
+  end_ts: number;
+  placed_at: string;
+  order_id: string;
+  outcome: string | null;
+  pnl: number | null;
+  event: string;
+}
+
+function parseMomentumTrades(filePath: string): Trade[] {
+  const raw = readJsonl<MomentumTradeRaw>(filePath);
+  const entryMap = new Map<string, Trade>();
+
+  for (const r of raw) {
+    const key = r.market_key ?? `${r.asset}-${r.end_ts}`;
+
+    if (r.event === "entry") {
+      entryMap.set(key, {
+        id: r.order_id ?? key,
+        botId: "momentum-bot",
+        timestamp: r.placed_at,
+        market: r.question ?? `${r.asset}-5MIN`,
+        asset: (r.asset ?? "BTC").toUpperCase(),
+        direction: "buy",
+        outcome: (r.direction ?? "up").toUpperCase() as "UP" | "DOWN",
+        entryPrice: r.entry_price,
+        exitPrice: null,
+        contracts: r.fill_shares ?? Math.round(r.stake / r.entry_price),
+        pnl: null,
+        status: "open",
+        meta: { fillUsdc: r.fill_usdc, fillShares: r.fill_shares },
+      });
+    } else if (r.event === "outcome") {
+      const existing = entryMap.get(key);
+      if (existing) {
+        existing.pnl = r.pnl;
+        existing.exitPrice = r.outcome === "won" ? 1.0 : 0;
+        existing.status = r.outcome === "won" ? "won" : r.outcome === "lost" ? "lost" : "open";
+      }
+    }
+  }
+
+  return Array.from(entryMap.values()).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
+interface BotSignalRaw {
+  type: string;
+  slot: number;
+  market: string;
+  side: string;
+  signal: string;
+  confidence: number;
+  entryPrice: number;
+  timestamp: string;
+  outcome: string;
+  correct: boolean;
+}
+
+function parseBotSignals(filePath: string): Trade[] {
+  const raw = readJsonl<BotSignalRaw>(filePath, 2000);
+  return raw
+    .filter((r) => r.type === "signal")
+    .map((r, i) => ({
+      id: `arb-signal-${r.slot}-${i}`,
+      botId: "arb-bot",
+      timestamp: r.timestamp,
+      market: `${r.market}-SIGNAL-${r.slot}`,
+      asset: (r.market ?? "BTC").toUpperCase(),
+      direction: "buy" as const,
+      outcome: (r.side ?? "up").toUpperCase() as "UP" | "DOWN",
+      entryPrice: r.entryPrice,
+      exitPrice: r.correct ? 1.0 : 0,
+      contracts: 1,
+      pnl: r.correct ? +(1.0 - r.entryPrice).toFixed(4) : +(-r.entryPrice).toFixed(4),
+      status: (r.correct ? "won" : "lost") as "won" | "lost",
+      meta: { confidence: r.confidence, signal: r.signal },
+    }))
+    .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
+// ── Public API ──
+
+export function getTradesForBot(botId: string): Trade[] {
+  const paths = LOG_PATHS[botId] ?? [];
+
+  switch (botId) {
+    case "orb-bot":
+      return paths.flatMap((p) => parseOrbTrades(p));
+    case "momentum-bot":
+      return paths.flatMap((p) => parseMomentumTrades(p));
+    case "arb-bot":
+      return paths.flatMap((p) => parseBotSignals(p));
+    case "4coinsbot": {
+      // 4coinsbot doesn't have logs yet — return empty until it runs
+      const p = paths[0];
+      if (p && existsSync(p)) {
+        // Future: parse 4coinsbot's trades.jsonl format
+        return [];
+      }
+      return [];
+    }
+    default:
+      return [];
+  }
+}
+
+// ── Analytics computation ──
+
 export function computeAnalytics(trades: Trade[]): BotAnalytics {
   const resolved = trades.filter((t) => t.status === "won" || t.status === "lost" || t.status === "stopped");
+  const openTrades = trades.filter((t) => t.status === "open");
   const wins = resolved.filter((t) => t.status === "won");
   const losses = resolved.filter((t) => t.status === "lost" || t.status === "stopped");
 
@@ -93,6 +324,7 @@ export function computeAnalytics(trades: Trade[]): BotAnalytics {
     totalTrades: resolved.length,
     wins: wins.length,
     losses: losses.length,
+    open: openTrades.length,
     winRate: resolved.length > 0 ? wins.length / resolved.length : 0,
     totalPnl,
     avgPnl: resolved.length > 0 ? totalPnl / resolved.length : 0,
@@ -103,57 +335,4 @@ export function computeAnalytics(trades: Trade[]): BotAnalytics {
     byAsset,
     pnlCurve,
   };
-}
-
-// ── Mock trade data (replaced by real JSONL ingestion later) ──
-
-function mockTrades(botId: string, asset: string, count: number): Trade[] {
-  const trades: Trade[] = [];
-  const now = Date.now();
-  for (let i = 0; i < count; i++) {
-    const isWin = Math.random() > 0.3;
-    const entry = 0.85 + Math.random() * 0.07;
-    const pnl = isWin
-      ? +(Math.random() * 0.15 + 0.02).toFixed(4)
-      : +(-Math.random() * 0.8 - 0.05).toFixed(4);
-    trades.push({
-      id: `${botId}-${asset}-${i}`,
-      botId,
-      timestamp: new Date(now - (count - i) * 15 * 60 * 1000).toISOString(),
-      market: `${asset.toUpperCase()}-UPDOWN-15MIN`,
-      asset: asset.toUpperCase(),
-      direction: "buy",
-      outcome: Math.random() > 0.5 ? "UP" : "DOWN",
-      entryPrice: +entry.toFixed(4),
-      exitPrice: isWin ? 1.0 : +(entry - Math.random() * 0.3).toFixed(4),
-      contracts: Math.floor(Math.random() * 4) + 8,
-      pnl,
-      status: isWin ? "won" : "lost",
-    });
-  }
-  return trades;
-}
-
-export function getTradesForBot(botId: string): Trade[] {
-  switch (botId) {
-    case "orb-bot":
-      return mockTrades("orb-bot", "btc", 40);
-    case "momentum-bot":
-      return [
-        ...mockTrades("momentum-bot", "btc", 20),
-        ...mockTrades("momentum-bot", "eth", 15),
-        ...mockTrades("momentum-bot", "sol", 10),
-      ].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-    case "arb-bot":
-      return mockTrades("arb-bot", "btc", 25);
-    case "4coinsbot":
-      return [
-        ...mockTrades("4coinsbot", "btc", 15),
-        ...mockTrades("4coinsbot", "eth", 12),
-        ...mockTrades("4coinsbot", "sol", 10),
-        ...mockTrades("4coinsbot", "xrp", 8),
-      ].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-    default:
-      return [];
-  }
 }
