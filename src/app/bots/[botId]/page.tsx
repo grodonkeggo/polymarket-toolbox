@@ -28,7 +28,7 @@ export default function BotDetailPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(true);
   const [modeLoading, setModeLoading] = useState(false);
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchTrades = useCallback(async () => {
     if (!botId) return;
@@ -78,9 +78,10 @@ export default function BotDetailPage() {
     return () => clearInterval(interval);
   }, [status, showLogs, fetchStatus, fetchLogs]);
 
-  // Auto-scroll logs
+  // Auto-scroll logs (within container only, not the whole page)
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = logsContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [logs]);
 
   const toggleMode = async () => {
@@ -319,7 +320,7 @@ export default function BotDetailPage() {
               {logs.length} lines &middot; auto-refresh 3s
             </span>
           </div>
-          <div className="p-3 max-h-64 overflow-y-auto font-mono text-[11px] leading-relaxed" style={{ color: "var(--accent-green)" }}>
+          <div ref={logsContainerRef} className="p-3 max-h-64 overflow-y-auto font-mono text-[11px] leading-relaxed" style={{ color: "var(--accent-green)" }}>
             {logs.length === 0 ? (
               <span style={{ color: "var(--text-muted)" }}>Waiting for output...</span>
             ) : (
@@ -329,7 +330,6 @@ export default function BotDetailPage() {
                 </div>
               ))
             )}
-            <div ref={logsEndRef} />
           </div>
         </div>
       )}
