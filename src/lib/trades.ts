@@ -43,8 +43,8 @@ export interface BotAnalytics {
 // ── JSONL file locations (configurable via env) ──
 
 const LOG_PATHS: Record<string, string[]> = {
-  "orb-bot": [
-    process.env.ORB_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/orb-bot/orb_trades.jsonl",
+  "scanner-bot": [
+    process.env.SCANNER_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/orb-bot/scanner_trades.jsonl",
   ],
   "momentum-bot": [
     process.env.MOMENTUM_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/momentum-bot/momentum_live_trades.jsonl",
@@ -248,8 +248,8 @@ export function getTradesForBot(botId: string): Trade[] {
   const paths = LOG_PATHS[botId] ?? [];
 
   switch (botId) {
-    case "orb-bot":
-      return paths.flatMap((p) => parseOrbTrades(p));
+    case "scanner-bot":
+      return paths.flatMap((p) => parseMomentumTrades(p));
     case "momentum-bot":
       return paths.flatMap((p) => parseMomentumTrades(p));
     case "arb-bot":

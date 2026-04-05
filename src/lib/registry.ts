@@ -6,22 +6,22 @@ import type { Strategy, Bot } from "./types";
 
 export const strategies: Strategy[] = [
   {
-    id: "orb-breakout",
-    name: "ORB Breakout",
+    id: "confirmed-momentum",
+    name: "Confirmed Momentum Scanner",
     description:
-      "Opening Range Breakout on BTC 5-min markets. TradingView Pine Script signals → calibrated bucket entry with Kelly sizing.",
+      "Self-scanning 5-min strategy with multi-signal confirmation: Binance delta + volume surge (1.3x) + trend continuation + CLOB orderbook imbalance. Enters at 85-92c after 90s+ confirmation.",
     status: "active",
     runtime: "python",
     asset: "crypto",
-    tags: ["btc", "5min", "breakout", "tradingview"],
-    sourcePath: "strategies/orb-breakout",
-    origin: "Polymarket BTC 5min",
+    tags: ["btc", "eth", "sol", "5min", "scanner", "volume", "orderbook"],
+    sourcePath: "bots/orb-bot/scanner_bot.py",
+    origin: "Replaces ORB Breakout",
     metrics: {
-      winRate: 0.72,
-      totalTrades: 3624,
+      winRate: 0,
+      totalTrades: 0,
       pnl: 0,
-      avgReturn: 0.06,
-      maxDrawdown: -5,
+      avgReturn: 0,
+      maxDrawdown: 0,
     },
   },
   {
@@ -128,20 +128,20 @@ export const strategies: Strategy[] = [
 
 export const bots: Bot[] = [
   {
-    id: "orb-bot",
-    name: "ORB Bot",
-    description: "FastAPI webhook server for ORB Breakout strategy",
+    id: "scanner-bot",
+    name: "Scanner Bot",
+    description:
+      "Confirmed Momentum Scanner — self-scanning BTC/ETH/SOL with delta + volume surge + orderbook imbalance + trend confirmation",
     status: "stopped",
-    strategyId: "orb-breakout",
+    strategyId: "confirmed-momentum",
     runtime: "python",
-    endpoint: "http://localhost:8000",
-    startCommand: "python -m uvicorn main:app --host 0.0.0.0 --port 8000",
+    startCommand: "python scanner_bot.py",
     cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/orb-bot",
     config: {
       stakeUsdc: 1,
       maxTradesPerHour: 10,
       dailyLossLimit: -5,
-      assets: ["btc"],
+      assets: ["btc", "eth", "sol"],
     },
   },
   {
