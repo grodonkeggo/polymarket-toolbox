@@ -18,6 +18,7 @@ export interface Trade {
   contracts: number;
   pnl: number | null;
   status: "open" | "won" | "lost" | "stopped";
+  dryRun: boolean;
   resolution?: string;
   /** Extra fields preserved from the source log */
   meta?: Record<string, unknown>;
@@ -104,7 +105,9 @@ interface OrbTradeRaw {
     fill_usdc?: number;
     fill_shares?: number;
     status?: string;
+    dry_run?: boolean;
   };
+  dry_run?: boolean;
   event: string;
 }
 
@@ -130,6 +133,7 @@ function parseOrbTrades(filePath: string): Trade[] {
         contracts: r.order?.fill_shares ?? Math.round(r.stake / r.mkt_price),
         pnl: null,
         status: "open",
+        dryRun: !!(r.dry_run || r.order?.dry_run),
         meta: { conf: r.conf, delta: r.delta, btcPrice: r.btc_price, bucketWr: r.bucket_wr, edge: r.edge },
       });
     } else if (r.event === "outcome") {
@@ -161,6 +165,7 @@ interface MomentumTradeRaw {
   order_id: string;
   outcome: string | null;
   pnl: number | null;
+  dry_run?: boolean;
   event: string;
 }
 
@@ -185,6 +190,7 @@ function parseMomentumTrades(filePath: string): Trade[] {
         contracts: r.fill_shares ?? Math.round(r.stake / r.entry_price),
         pnl: null,
         status: "open",
+        dryRun: !!r.dry_run,
         meta: { fillUsdc: r.fill_usdc, fillShares: r.fill_shares },
       });
     } else if (r.event === "outcome") {
@@ -230,6 +236,7 @@ function parseBotSignals(filePath: string): Trade[] {
       contracts: 1,
       pnl: r.correct ? +(1.0 - r.entryPrice).toFixed(4) : +(-r.entryPrice).toFixed(4),
       status: (r.correct ? "won" : "lost") as "won" | "lost",
+      dryRun: false,
       meta: { confidence: r.confidence, signal: r.signal },
     }))
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));

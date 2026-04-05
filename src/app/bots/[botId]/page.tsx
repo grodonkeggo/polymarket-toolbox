@@ -496,20 +496,30 @@ export default function BotDetailPage() {
                         {t.pnl !== null ? `${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(4)}` : "—"}
                       </td>
                       <td className="px-3 py-2">
-                        <span
-                          className="text-[10px] font-medium uppercase"
-                          style={{
-                            color:
-                              t.status === "won"
-                                ? "var(--accent-green)"
-                                : t.status === "lost"
-                                  ? "var(--accent-red)"
-                                  : t.status === "open"
-                                    ? "var(--accent-blue)"
-                                    : "var(--accent-yellow)",
-                          }}
-                        >
-                          {t.status}
+                        <span className="flex items-center gap-1">
+                          <span
+                            className="text-[10px] font-medium uppercase"
+                            style={{
+                              color:
+                                t.status === "won"
+                                  ? "var(--accent-green)"
+                                  : t.status === "lost"
+                                    ? "var(--accent-red)"
+                                    : t.status === "open"
+                                      ? "var(--accent-blue)"
+                                      : "var(--accent-yellow)",
+                            }}
+                          >
+                            {t.status}
+                          </span>
+                          {t.dryRun && (
+                            <span
+                              className="text-[8px] px-1 py-0.5 rounded font-bold uppercase"
+                              style={{ background: "var(--accent-purple-dim)", color: "var(--accent-purple)" }}
+                            >
+                              SIM
+                            </span>
+                          )}
                         </span>
                       </td>
                     </tr>
