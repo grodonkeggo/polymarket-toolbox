@@ -136,12 +136,14 @@ function parseOrbTrades(filePath: string): Trade[] {
         dryRun: !!(r.dry_run || r.order?.dry_run),
         meta: { conf: r.conf, delta: r.delta, btcPrice: r.btc_price, bucketWr: r.bucket_wr, edge: r.edge },
       });
-    } else if (r.event === "outcome") {
+    } else if (r.event === "outcome" || r.event === "mid_sl_exit" || r.event === "mid_tp_exit") {
       const existing = entryMap.get(key);
       if (existing) {
         existing.pnl = r.pnl;
-        existing.exitPrice = r.outcome === "won" ? 1.0 : 0;
-        existing.status = r.outcome === "won" ? "won" : r.outcome === "lost" ? "lost" : "open";
+        const won = r.outcome === "won" || r.outcome === "mid_tp";
+        const lost = r.outcome === "lost" || r.outcome === "mid_sl";
+        existing.exitPrice = won ? 1.0 : 0;
+        existing.status = won ? "won" : lost ? "lost" : "open";
       }
     }
   }
@@ -193,12 +195,14 @@ function parseMomentumTrades(filePath: string): Trade[] {
         dryRun: !!r.dry_run,
         meta: { fillUsdc: r.fill_usdc, fillShares: r.fill_shares },
       });
-    } else if (r.event === "outcome") {
+    } else if (r.event === "outcome" || r.event === "mid_sl_exit" || r.event === "mid_tp_exit") {
       const existing = entryMap.get(key);
       if (existing) {
         existing.pnl = r.pnl;
-        existing.exitPrice = r.outcome === "won" ? 1.0 : 0;
-        existing.status = r.outcome === "won" ? "won" : r.outcome === "lost" ? "lost" : "open";
+        const won = r.outcome === "won" || r.outcome === "mid_tp";
+        const lost = r.outcome === "lost" || r.outcome === "mid_sl";
+        existing.exitPrice = won ? 1.0 : 0;
+        existing.status = won ? "won" : lost ? "lost" : "open";
       }
     }
   }
