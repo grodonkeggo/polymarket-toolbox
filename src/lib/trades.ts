@@ -52,6 +52,9 @@ const LOG_PATHS: Record<string, string[]> = {
   "arb-bot": [
     process.env.ARB_SIGNALS_PATH ?? "",
   ],
+  "scalper-bot": [
+    process.env.SCALPER_TRADES_PATH ?? "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/scalper-bot/scalper_trades.jsonl",
+  ],
   "4coinsbot": [
     // 4coinsbot logs to logs/trades.jsonl at runtime — check both local and source locations
     process.env.FOURCOINS_TRADES_PATH ?? "",
@@ -253,6 +256,8 @@ export function getTradesForBot(botId: string): Trade[] {
 
   switch (botId) {
     case "scanner-bot":
+      return paths.flatMap((p) => parseMomentumTrades(p));
+    case "scalper-bot":
       return paths.flatMap((p) => parseMomentumTrades(p));
     case "momentum-bot":
       return paths.flatMap((p) => parseMomentumTrades(p));

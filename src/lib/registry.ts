@@ -106,6 +106,25 @@ export const strategies: Strategy[] = [
     origin: "PredictionMarket Arbitrage",
   },
   {
+    id: "dip-scalper",
+    name: "Favourite Dip Scalper",
+    description:
+      "Buys the favourite after a 15c+ dip from peak. Backtest: 388 signals, 100% TP hit rate, avg 32.7c recovery. TP at +5c, wide 35c SL.",
+    status: "active",
+    runtime: "python",
+    asset: "crypto",
+    tags: ["btc", "eth", "sol", "5min", "scalper", "dip", "mean-reversion"],
+    sourcePath: "bots/scalper-bot/scalper_bot.py",
+    origin: "Data-driven (52K snapshot analysis)",
+    metrics: {
+      winRate: 0,
+      totalTrades: 0,
+      pnl: 0,
+      avgReturn: 0,
+      maxDrawdown: 0,
+    },
+  },
+  {
     id: "late-entry-v3",
     name: "Late Entry V3 (4coinsbot)",
     description:
@@ -175,6 +194,23 @@ export const bots: Bot[] = [
       maxTradesPerHour: 50,
       dailyLossLimit: -10,
       assets: ["btc", "eth"],
+    },
+  },
+  {
+    id: "scalper-bot",
+    name: "Scalper Bot",
+    description:
+      "Favourite Dip Scalper — buys the favourite after 15c+ dip from peak, TP at +5c recovery",
+    status: "stopped",
+    strategyId: "dip-scalper",
+    runtime: "python",
+    startCommand: "python scalper_bot.py",
+    cwd: "C:/Users/bapti/Documents/AI/Trading/Polymarket Tools/bots/scalper-bot",
+    config: {
+      stakeUsdc: 1,
+      maxTradesPerHour: 20,
+      dailyLossLimit: -5,
+      assets: ["btc", "eth", "sol"],
     },
   },
   {
