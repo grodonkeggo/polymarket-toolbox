@@ -28,19 +28,21 @@ export default function BotDetailPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(true);
   const [modeLoading, setModeLoading] = useState(false);
+  const [dateFilter, setDateFilter] = useState<string>(new Date().toISOString().slice(0, 10));
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchTrades = useCallback(async () => {
     if (!botId) return;
     try {
-      const res = await fetch(`/api/bots/${botId}/trades`);
+      const q = dateFilter === "all" ? "" : `?date=${dateFilter}`;
+      const res = await fetch(`/api/bots/${botId}/trades${q}`);
       const data = await res.json();
       setTrades(data.trades ?? []);
       setAnalytics(data.analytics ?? null);
     } finally {
       setLoading(false);
     }
-  }, [botId]);
+  }, [botId, dateFilter]);
 
   const fetchStatus = useCallback(async () => {
     if (!botId) return;
@@ -333,6 +335,44 @@ export default function BotDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Date filter */}
+      <div className="flex items-center gap-2 mb-4">
+        {["today", "yesterday", "all"].map((label) => {
+          const val =
+            label === "today"
+              ? new Date().toISOString().slice(0, 10)
+              : label === "yesterday"
+                ? new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+                : "all";
+          const active = dateFilter === val;
+          return (
+            <button
+              key={label}
+              onClick={() => { setDateFilter(val); setLoading(true); }}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium uppercase tracking-wider transition-colors"
+              style={{
+                background: active ? "var(--accent-blue-dim)" : "var(--bg-card)",
+                color: active ? "var(--accent-blue)" : "var(--text-secondary)",
+                borderWidth: 1,
+                borderColor: active ? "var(--accent-blue)" : "var(--border)",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+        <input
+          type="date"
+          value={dateFilter === "all" ? "" : dateFilter}
+          onChange={(e) => { setDateFilter(e.target.value || "all"); setLoading(true); }}
+          className="px-2 py-1 rounded-lg text-xs font-mono"
+          style={{ background: "var(--bg-card)", color: "var(--text-secondary)", borderWidth: 1, borderColor: "var(--border)" }}
+        />
+        <span className="text-[10px] ml-2" style={{ color: "var(--text-muted)" }}>
+          {dateFilter === "all" ? "All time" : dateFilter}
+        </span>
+      </div>
 
       {/* Analytics cards */}
       {analytics && (
